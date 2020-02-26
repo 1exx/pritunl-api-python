@@ -35,6 +35,45 @@ class Pritunl:
         self.organization = self.OrganizationClass(self)
         self.user = self.UserClass(self)
         self.key = self.KeyClass(self)
+        self.host = self.HostClass(self)
+
+    class HostClass:
+        def __init__(self, root):
+
+            self.r = None
+            self.root = root
+
+        def get(self, host_id=None, org=None, out=None):
+            try:
+                if host_id and not org and not out:
+                    self.r = self.root.auth_request(method="GET", path="/host/{0}".format(host_id))
+                else:
+                    self.r = self.root.auth_request(method="GET", path="/host")
+                if self.r.status_code == 200:
+                    return self.r.json()
+                else:
+                    raise PritunlErr("{0}:{1}".format(sys._getframe().f_code.co_name, self.root.BASE_URL))
+            except Exception:
+                raise PritunlErr("{0}:{1}".format(sys._getframe().f_code.co_name, self.root.BASE_URL))
+
+        def put(self, srv_id=None, host_id=None, data=None):
+            self.data_template = {
+                'name': 'test',
+                'address': 'test',
+                'id': host_id,
+                'server': srv_id,
+            }
+            try:
+                self.headers = {'Content-Type': 'application/json'}
+                self.r = self.root.auth_request(method="PUT", path="/server/{0}/host/{1}".format(srv_id, host_id),
+                                                headers=self.headers,
+                                                data=json.dumps(self.data_template))
+                if self.r.status_code == 200:
+                    return self.r.json()
+                else:
+                    raise PritunlErr("{0}:{1}".format(sys._getframe().f_code.co_name, self.root.BASE_URL))
+            except:
+                raise PritunlErr("{0}:{1}".format(sys._getframe().f_code.co_name, self.root.BASE_URL))
 
     class KeyClass:
         def __init__(self, root):
@@ -327,7 +366,7 @@ class Pritunl:
         auth_timestamp = str(int(time.time()))
         auth_nonce = uuid.uuid4().hex
         auth_string = '&'.join([self.API_TOKEN, auth_timestamp, auth_nonce,
-                                method.upper(), path] + ([data] if data else []))
+                                method.upper(), path])
 
         hmacv = hmac.new(str.encode(self.API_SECRET), auth_string.encode('utf-8'), hashlib.sha256).digest()
 
